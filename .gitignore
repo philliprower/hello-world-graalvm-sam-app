@@ -1,0 +1,8 @@
+target
+*.iml
+.idea
+samconfig.toml
+.aws-sam
+dependency-reduced-pom.xml
+http-client.private.env.json
+.DS_Store

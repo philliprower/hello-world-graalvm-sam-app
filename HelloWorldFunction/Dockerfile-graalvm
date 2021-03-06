@@ -1,0 +1,29 @@
+FROM amazonlinux:2 as base
+
+FROM base as build
+RUN yum install -y wget gzip tar unzip
+RUN wget https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-21.0.0.2/graalvm-ce-java11-linux-amd64-21.0.0.2.tar.gz
+RUN tar -xzf graalvm-ce-java11-linux-amd64-21.0.0.2.tar.gz
+RUN wget https://mirrors.ocf.berkeley.edu/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+RUN tar -xzf apache-maven-3.6.3-bin.tar.gz
+ENV PATH="/graalvm-ce-java11-21.0.0.2/bin:/apache-maven-3.6.3/bin:${PATH}"
+ENV JAVA_HOME="/graalvm-ce-java11-21.0.0.2"
+ENV MAVEN_HOME="/apache-maven-3.6.3"
+RUN gu install native-image
+RUN mkdir /root/.m2
+RUN yum install -y gcc glibc-devel zlib-devel libstdc++-static
+WORKDIR /src
+
+
+# compile the function
+ADD . .
+RUN mvn clean package
+
+# copy the function artifact and dependencies onto a clean base
+FROM base
+COPY --from=build /graalvm-ce-java11-21.0.0.2 /graalvm-ce-java11-21.0.0.2
+RUN ln -s /graalvm-ce-java11-21.0.0.2/bin/java /usr/bin/java
+
+WORKDIR /function
+COPY --from=build /src/target/HelloWorld-1.0.jar ./
+CMD ["/usr/bin/java", "-jar", "HelloWorld-1.0.jar", "helloworld.App::handleRequest"]

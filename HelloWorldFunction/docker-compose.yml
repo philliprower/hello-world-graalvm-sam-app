@@ -1,0 +1,35 @@
+version: '2.4'
+services:
+
+  graalvm:
+    image: hello-world
+    build:
+      context: .
+      dockerfile: Dockerfile-graalvm
+    volumes:
+      - ./target/native-image:/tmp/native-image
+      -  ~/.aws-lambda-rie:/aws-lambda
+    ports:
+      - "127.0.0.1:9000:8080"
+    entrypoint:
+      - /aws-lambda/aws-lambda-rie
+      - /usr/bin/java
+      - -agentlib:native-image-agent=config-merge-dir=/tmp/native-image,config-write-period-secs=5
+      - -jar
+      - HelloWorld-1.0.jar
+      - helloworld.App::handleRequest
+
+
+  native:
+    image: hello-world-native
+    build:
+      context: .
+      dockerfile: Dockerfile-native
+    volumes:
+      - ~/.aws-lambda-rie:/aws-lambda
+    ports:
+      - "127.0.0.1:9000:8080"
+    entrypoint:
+      - /aws-lambda/aws-lambda-rie
+      - ./hello-world
+      - helloworld.App::handleRequest
